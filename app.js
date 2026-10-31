@@ -17,8 +17,6 @@ function showPage(page) {
 $('#nav')?.addEventListener('click',e=>{const b=e.target.closest('[data-page]');if(b)showPage(b.dataset.page);});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)showPage(b.dataset.go);});
 
-// Toplam çalışma yerine son 7 günün haftalık toplamını hesaplar
-function weekMinutes(){const week=lastSeven();return week.reduce((a,b)=>a+b,0);}
 function lastSeven(){const result=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;result.push(study[key]||0);}return result;}
 
 function renderStats(){
@@ -26,9 +24,9 @@ function renderStats(){
   const totalWeeklyMins = week.reduce((a,b)=>a+b,0);
   
   $('#todayStudy').textContent=today+' dk'; 
-  // Toplam çalışma alanı artık haftalık saate dönüştürüldü
   $('#totalStudy').textContent=(totalWeeklyMins/60).toFixed(1)+' sa';
-  $('#totalStudy').closest('.stat').querySelector('small').textContent='Bu haftaki toplam çalışma süren';
+  const totalStatSmall = $('#totalStudy')?.closest('.stat')?.querySelector('small');
+  if(totalStatSmall) totalStatSmall.textContent='Bu haftaki toplam çalışma süren';
 
   $('#goalBar').style.width=Math.min(100,today/120*100)+'%'; $('#goalText').textContent=Math.min(today,120)+' / 120 dk';
   $('#goalPercent').textContent=Math.min(100,Math.round(today/120*100))+'%';
@@ -52,34 +50,49 @@ $('#studyTarget').value=target;
 function updateClock(){const now=new Date();$('#liveClock').textContent=now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});$('#todayLabel').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');}
 updateClock();setInterval(updateClock,1000);
 
-let duration=25*60,left=duration,interval=null,elapsed=0;
+// Odak sayacı: Gerçek zaman damgası tabanlı hatasız sayaç mantığı
+let duration=25*60, left=duration, interval=null;
 const circumference=2*Math.PI*104;
 let session=store.get('activeStudySession',null);
-function drawTimer(){const mm=Math.floor(left/60),ss=left%60;$('#timerDisplay').textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;$('#timerProgress').style.strokeDashoffset=circumference*(1-left/duration);}
-function addStudy(minutes){if(!minutes)return;const key=todayKey();study[key]=(study[key]||0)+minutes;store.set('study',study);renderStats();}
+
+function drawTimer(){
+  const mm=Math.floor(left/60), ss=left%60;
+  $('#timerDisplay').textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  $('#timerProgress').style.strokeDashoffset=circumference*(1-left/duration);
+}
+
+function addStudy(minutes){
+  if(!minutes)return;
+  const key=todayKey();
+  study[key]=(study[key]||0)+minutes;
+  store.set('study',study);
+  renderStats();
+}
 
 function syncSession(){
   if(!session || !session.running) return;
   const now = Date.now();
-  const delta = Math.max(0, Math.floor((now - session.lastTick) / 1000));
-  if(delta > 0) {
-    session.elapsed = (session.elapsed || 0) + delta;
-    session.pendingSeconds = (session.pendingSeconds || 0) + delta;
-    session.lastTick = now; // lastTick güncellenerek döngüsel atlama engellendi
-    while(session.pendingSeconds >= 60){
-      addStudy(1);
-      session.pendingSeconds -= 60;
-    }
-    left = Math.max(0, (session.duration || duration) - session.elapsed);
-    elapsed = session.elapsed;
-    store.set('activeStudySession', session);
-    drawTimer();
+  const elapsedSecs = Math.floor((now - session.startTime) / 1000);
+  const totalElapsed = Math.min(session.duration, (session.baseElapsed || 0) + elapsedSecs);
+  
+  session.elapsed = totalElapsed;
+  left = Math.max(0, session.duration - totalElapsed);
+
+  const newlyPassed = totalElapsed - (session.lastRecordedSec || 0);
+  if (newlyPassed >= 60) {
+    const minsToAdd = Math.floor(newlyPassed / 60);
+    addStudy(minsToAdd);
+    session.lastRecordedSec = (session.lastRecordedSec || 0) + (minsToAdd * 60);
   }
+
+  store.set('activeStudySession', session);
+  drawTimer();
 }
 
 function stopTimer(){
   syncSession();
   if(session){
+    session.baseElapsed = session.elapsed;
     session.running = false;
     store.set('activeStudySession', session);
   }
@@ -91,14 +104,22 @@ function stopTimer(){
 
 function startTimer(){
   if(interval) return;
+  const now = Date.now();
   if(!session || session.duration !== duration || session.elapsed >= duration){
-    session = { duration, elapsed: 0, lastTick: Date.now(), running: true, pendingSeconds: 0 };
+    session = {
+      duration,
+      baseElapsed: 0,
+      elapsed: 0,
+      startTime: now,
+      lastRecordedSec: 0,
+      running: true
+    };
   } else {
-    session.lastTick = Date.now();
+    session.startTime = now;
     session.running = true;
   }
   store.set('activeStudySession', session);
-  
+
   interval = setInterval(()=>{
     syncSession();
     if(left <= 0){
@@ -110,8 +131,8 @@ function startTimer(){
       $('#timerLabel').textContent = 'TUR TAMAMLANDI';
       toast('Harika! Odaklanma turunu tamamladın.');
     }
-  }, 500);
-  
+  }, 200);
+
   const startBtn = $('#startTimer');
   if(startBtn) startBtn.innerHTML = 'Duraklat <span>Ⅱ</span>';
 }
@@ -119,12 +140,10 @@ function startTimer(){
 function restoreTimer(){
   if(session){
     duration = Number(session.duration) || duration;
-    elapsed = Number(session.elapsed) || 0;
-    left = Math.max(0, duration - elapsed);
+    session.baseElapsed = Number(session.elapsed) || 0;
+    left = Math.max(0, duration - session.baseElapsed);
     if(session.running){
-      // Sayfa yenilendiğinde sayaç askıda kalmasın diye duraklatılıyor
       session.running = false;
-      session.lastTick = Date.now();
       store.set('activeStudySession', session);
     }
     const startBtn = $('#startTimer');
@@ -134,15 +153,16 @@ function restoreTimer(){
 }
 
 $('#startTimer')?.addEventListener('click',()=>session?.running?stopTimer():startTimer());
-$('#resetTimer')?.addEventListener('click',()=>{stopTimer();session=null;store.set('activeStudySession',null);left=duration;elapsed=0;$('#timerLabel').textContent='ODAKLANMA ZAMANI';drawTimer();});
-$$('.mode').forEach(button=>button.addEventListener('click',()=>{stopTimer();session=null;store.set('activeStudySession',null);$$('.mode').forEach(x=>x.classList.toggle('active',x===button));const mode=button.dataset.min;duration=(mode==='custom'?45:Number(mode))*60;left=duration;elapsed=0;$('#timerLabel').textContent=mode==='custom'?'SERBEST ODAK':'ODAKLANMA ZAMANI';drawTimer();}));
-$('#applyCustomTime')?.addEventListener('click',()=>{const minutes=Math.max(1,Math.min(600,Number($('#customMinutes').value)||25));stopTimer();session=null;store.set('activeStudySession',null);duration=minutes*60;left=duration;elapsed=0;$$('.mode').forEach(x=>x.classList.remove('active'));$('#timerLabel').textContent='ÖZEL ODAK SÜRESİ';drawTimer();});
+$('#resetTimer')?.addEventListener('click',()=>{stopTimer();session=null;store.set('activeStudySession',null);left=duration;$('#timerLabel').textContent='ODAKLANMA ZAMANI';drawTimer();});
+$$('.mode').forEach(button=>button.addEventListener('click',()=>{stopTimer();session=null;store.set('activeStudySession',null);$$('.mode').forEach(x=>x.classList.toggle('active',x===button));const mode=button.dataset.min;duration=(mode==='custom'?45:Number(mode))*60;left=duration;$('#timerLabel').textContent=mode==='custom'?'SERBEST ODAK':'ODAKLANMA ZAMANI';drawTimer();}));
+$('#applyCustomTime')?.addEventListener('click',()=>{const minutes=Math.max(1,Math.min(600,Number($('#customMinutes').value)||25));stopTimer();session=null;store.set('activeStudySession',null);duration=minutes*60;left=duration;$$('.mode').forEach(x=>x.classList.remove('active'));$('#timerLabel').textContent='ÖZEL ODAK SÜRESİ';drawTimer();});
 
 document.addEventListener('visibilitychange',()=>{if(session?.running)syncSession();});
 function pauseTimerOnExit(){if(session?.running){syncSession();session.running=false;store.set('activeStudySession',session);clearInterval(interval);interval=null;}}
 window.addEventListener('pagehide',pauseTimerOnExit);
 window.addEventListener('beforeunload',pauseTimerOnExit);
 restoreTimer();
+
 $('#themeToggle')?.addEventListener('click',()=>{document.body.classList.toggle('dark');store.set('darkMode',document.body.classList.contains('dark'));});
 if(store.get('darkMode',false))document.body.classList.add('dark');
 
