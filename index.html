@@ -39,8 +39,6 @@
       
       <div class="dash-grid">
         <div class="panel section-card"><div class="section-head"><div><div class="eyebrow">PROGRAMIN</div><h3>Yaklaşan sınavlar</h3></div><button class="text-btn" data-go="calendar">Takvimi aç →</button></div><div id="dashboardExams" class="exam-list"></div></div>
-        
-        <!-- Bugünkü Dersler Alanı Eklendi -->
         <div class="panel section-card"><div class="section-head"><div><div class="eyebrow">BUGÜNKÜ PROGRAM</div><h3>Bugünkü derslerin</h3></div><span class="pill blue-pill">Ders programı</span></div><div id="dashboardSchedule" class="exam-list"></div></div>
       </div>
 
@@ -52,14 +50,30 @@
     </section>
 
     <section class="page" id="page-study">
-      <div class="study-layout"><div class="panel timer-panel"><div class="section-head"><div><div class="eyebrow">ODAK MODU</div><h3>Çalışma sayacı</h3></div><span class="pill green-pill">● Hazır</span></div>
-        <div class="mode-tabs"><button class="mode active" data-min="25">Pomodoro 25</button><button class="mode" data-min="50">Derin çalışma 50</button><button class="mode" data-min="custom">Serbest</button></div>
-        <div class="timer-wrap"><svg class="timer-svg" viewBox="0 0 240 240"><circle class="timer-track" cx="120" cy="120" r="104"/><circle class="timer-progress" id="timerProgress" cx="120" cy="120" r="104"/></svg><div class="timer-center"><div class="timer-label" id="timerLabel">ODAKLANMA ZAMANI</div><div class="timer-time" id="timerDisplay">25:00</div><div class="timer-sub" id="timerSub">Küçük bir başlangıç yap.</div></div></div>
-        <div class="custom-time-row"><label for="customMinutes">Kendi süren (dakika)</label><input id="customMinutes" class="field" type="number" min="1" max="600" value="35"><button class="secondary-btn" id="applyCustomTime">Süreyi uygula</button></div><div class="timer-controls timer-controls-lowered"><button class="primary-btn" id="startTimer">Süreyi başlat <span>▶</span></button><button class="secondary-btn" id="resetTimer">Sıfırla</button></div>
-        <div class="timer-foot"><span>✓ Süre otomatik kaydedilir</span><span>◷ Mola vermeyi unutma</span></div>
+      <div class="study-layout">
+        <div class="panel timer-panel"><div class="section-head"><div><div class="eyebrow">ODAK MODU</div><h3>Çalışma sayacı</h3></div><span class="pill green-pill">● Hazır</span></div>
+          <div class="mode-tabs"><button class="mode active" data-min="25">Pomodoro 25</button><button class="mode" data-min="50">Derin çalışma 50</button><button class="mode" data-min="custom">Serbest</button></div>
+          <div class="timer-wrap"><svg class="timer-svg" viewBox="0 0 240 240"><circle class="timer-track" cx="120" cy="120" r="104"/><circle class="timer-progress" id="timerProgress" cx="120" cy="120" r="104"/></svg><div class="timer-center"><div class="timer-label" id="timerLabel">ODAKLANMA ZAMANI</div><div class="timer-time" id="timerDisplay">25:00</div><div class="timer-sub" id="timerSub">Küçük bir başlangıç yap.</div></div></div>
+          <div class="custom-time-row"><label for="customMinutes">Kendi süren (dakika)</label><input id="customMinutes" class="field" type="number" min="1" max="600" value="35"><button class="secondary-btn" id="applyCustomTime">Süreyi uygula</button></div><div class="timer-controls timer-controls-lowered"><button class="primary-btn" id="startTimer">Süreyi başlat <span>▶</span></button><button class="secondary-btn" id="resetTimer">Sıfırla</button></div>
+          <div class="timer-foot"><span>✓ Süre otomatik kaydedilir</span><span>◷ Mola vermeyi unutma</span></div>
+        </div>
+
+        <div class="study-side">
+          <div class="panel section-card"><div class="eyebrow">BUGÜNÜN DERSİ</div><h3>Hangi derse odaklanıyorsun?</h3><select id="subjectSelect" class="select"><option>Algoritma (3.5 Kredi)</option><option>Bilgisayar Bilimine Giriş (2 Kredi)</option><option>Genel Fizik (4 Kredi)</option><option>Genel Matematik (4 Kredi)</option><option>Temel Elektronik (2 Kredi)</option><option>Türk Dili (2 Kredi)</option></select><label class="field-label">Çalışma hedefin</label><input id="studyTarget" class="field" placeholder="Örn. Limit konusunu bitir"><button class="secondary-btn full" id="saveTarget">Hedefi kaydet</button><p class="muted" id="targetSaved"></p></div>
+          
+          <div class="panel section-card"><div class="section-head"><h3>Çalışma istatistiği</h3><span class="stat-icon purple">↗</span></div><div class="big-number" id="weekHours">0 dk</div><p class="muted">Son 7 günde tamamladığın süre</p><div class="week-bars" id="weekBars"></div></div>
+
+          <!-- YouTube Odak Müziği Eklendi -->
+          <div class="panel section-card">
+            <div class="section-head"><div><div class="eyebrow">ODAK MÜZİĞİ</div><h3>Arka plan müziği</h3></div><span class="pill purple-pill">YouTube</span></div>
+            <p class="muted" style="margin-bottom: 10px;">Çalışırken odaklanmanı artırmak için oynat.</p>
+            <div style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; background: #000;">
+              <iframe width="100%" height="100%" src="https://www.youtube.com/embed/2zU243B1jWE" title="Odaklanma Müziği" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border:0;"></iframe>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="study-side"><div class="panel section-card"><div class="eyebrow">BUGÜNÜN DERSİ</div><h3>Hangi derse odaklanıyorsun?</h3><select id="subjectSelect" class="select"><option>Algoritma (3.5 Kredi)</option><option>Bilgisayar Bilimine Giriş (2 Kredi)</option><option>Genel Fizik (4 Kredi)</option><option>Genel Matematik (4 Kredi)</option><option>Temel Elektronik (2 Kredi)</option><option>Türk Dili (2 Kredi)</option></select><label class="field-label">Çalışma hedefin</label><input id="studyTarget" class="field" placeholder="Örn. Limit konusunu bitir"><button class="secondary-btn full" id="saveTarget">Hedefi kaydet</button><p class="muted" id="targetSaved"></p></div>
-      <div class="panel section-card"><div class="section-head"><h3>Çalışma istatistiği</h3><span class="stat-icon purple">↗</span></div><div class="big-number" id="weekHours">0 dk</div><p class="muted">Son 7 günde tamamladığın süre</p><div class="week-bars" id="weekBars"></div></div></div></div>
+
       <div class="panel section-card tasks-panel"><div class="section-head"><div><div class="eyebrow">YAPILACAKLAR</div><h3>Çalışma görevlerin</h3></div><span class="pill" id="taskProgress">0 tamamlandı</span></div><div class="add-task"><input id="taskInput" class="field" placeholder="Yeni görev ekle…"><button class="primary-btn" id="addTask">Ekle +</button></div><div id="taskList" class="task-list"></div></div>
     </section>
 
@@ -91,13 +105,12 @@
 
     <section class="page" id="page-facts"><div class="panel section-card facts-panel"><div class="section-head"><div><div class="eyebrow">MERAK MOLASI</div><h3>Küçük Bilgiler</h3><p class="muted">Bilim, tarih ve günlük hayattan kısa kısa bilgiler. Hepsi bir arada.</p></div><span class="pill purple-pill">Bilim • Tarih • Eğlence</span></div><div id="factsGrid" class="facts-grid"></div></div></section>
 
-    <!-- Yenilenmiş Not Defteri Sayfası -->
     <section class="page" id="page-notes">
       <div class="notes-layout">
         <div class="panel section-card upload-panel">
-          <div class="eyebrow">DERS NOTLARI DEFTERİ</div>
-          <h3>Not ekle ve düzenle</h3>
-          <p class="muted">Dosya yükleme sorununu aşmak için notlarını doğrudan buraya yazıp saklayabilirsin.</p>
+          <div class="eyebrow">DERS NOTLARI VE PDF KÜTÜPHANESİ</div>
+          <h3>Ders notu veya PDF ekle</h3>
+          <p class="muted">Tarayıcı sınırlarına takılmamak için notunu yazabilir veya Drive/PDF bağlantısını ekleyebilirsin.</p>
           
           <label class="field-label" for="noteSubject">Notun dersi</label>
           <select id="noteSubject" class="select">
@@ -109,11 +122,11 @@
             <option>Türk Dili (2 Kredi)</option>
           </select>
 
-          <label class="field-label" for="noteTitleInput">Not başlığı</label>
-          <input id="noteTitleInput" class="field" placeholder="Örn: 1. Ünite Özet Notları">
+          <label class="field-label" for="noteTitleInput">Not veya PDF başlığı</label>
+          <input id="noteTitleInput" class="field" placeholder="Örn: 1. Ünite PDF Linki veya Özeti">
 
-          <label class="field-label" for="noteContentInput">Not içeriği</label>
-          <textarea id="noteContentInput" class="field" style="height:120px;resize:vertical;" placeholder="Buraya ders özetini veya önemli formülleri yazabilirsin..."></textarea>
+          <label class="field-label" for="noteContentInput">İçerik / PDF Bağlantı Linki</label>
+          <textarea id="noteContentInput" class="field" style="height:100px;resize:vertical;" placeholder="Buraya yazını yazabilir veya PDF'in Google Drive / internet linkini yapıştırabilirsin..."></textarea>
           
           <button class="primary-btn full" id="saveNoteBtn" style="margin-top:12px;">Notu kaydet +</button>
 
