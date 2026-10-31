@@ -50,52 +50,25 @@ $('#studyTarget').value=target;
 function updateClock(){const now=new Date();$('#liveClock').textContent=now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});$('#todayLabel').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');}
 updateClock();setInterval(updateClock,1000);
 
-// Odak sayacı: Gerçek zaman damgası tabanlı hatasız sayaç mantığı
-let duration=25*60, left=duration, interval=null;
-const circumference=2*Math.PI*104;
-let session=store.get('activeStudySession',null);
+// Kesin çözüm: Saniyede 1 kez azalan, stabil sayaç mantığı
+let duration = 25 * 60, left = duration, interval = null;
+const circumference = 2 * Math.PI * 104;
 
 function drawTimer(){
-  const mm=Math.floor(left/60), ss=left%60;
-  $('#timerDisplay').textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-  $('#timerProgress').style.strokeDashoffset=circumference*(1-left/duration);
+  const mm = Math.floor(left / 60), ss = left % 60;
+  $('#timerDisplay').textContent = `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+  $('#timerProgress').style.strokeDashoffset = circumference * (1 - left / duration);
 }
 
 function addStudy(minutes){
-  if(!minutes)return;
-  const key=todayKey();
-  study[key]=(study[key]||0)+minutes;
-  store.set('study',study);
+  if(!minutes) return;
+  const key = todayKey();
+  study[key] = (study[key] || 0) + minutes;
+  store.set('study', study);
   renderStats();
 }
 
-function syncSession(){
-  if(!session || !session.running) return;
-  const now = Date.now();
-  const elapsedSecs = Math.floor((now - session.startTime) / 1000);
-  const totalElapsed = Math.min(session.duration, (session.baseElapsed || 0) + elapsedSecs);
-  
-  session.elapsed = totalElapsed;
-  left = Math.max(0, session.duration - totalElapsed);
-
-  const newlyPassed = totalElapsed - (session.lastRecordedSec || 0);
-  if (newlyPassed >= 60) {
-    const minsToAdd = Math.floor(newlyPassed / 60);
-    addStudy(minsToAdd);
-    session.lastRecordedSec = (session.lastRecordedSec || 0) + (minsToAdd * 60);
-  }
-
-  store.set('activeStudySession', session);
-  drawTimer();
-}
-
 function stopTimer(){
-  syncSession();
-  if(session){
-    session.baseElapsed = session.elapsed;
-    session.running = false;
-    store.set('activeStudySession', session);
-  }
   clearInterval(interval);
   interval = null;
   const startBtn = $('#startTimer');
@@ -104,64 +77,64 @@ function stopTimer(){
 
 function startTimer(){
   if(interval) return;
-  const now = Date.now();
-  if(!session || session.duration !== duration || session.elapsed >= duration){
-    session = {
-      duration,
-      baseElapsed: 0,
-      elapsed: 0,
-      startTime: now,
-      lastRecordedSec: 0,
-      running: true
-    };
-  } else {
-    session.startTime = now;
-    session.running = true;
-  }
-  store.set('activeStudySession', session);
-
-  interval = setInterval(()=>{
-    syncSession();
-    if(left <= 0){
+  
+  interval = setInterval(() => {
+    if(left > 0){
+      left--;
+      drawTimer();
+      // Her geçen 60 saniyede bir istatistiğe 1 dakika ekle
+      if((duration - left) % 60 === 0){
+        addStudy(1);
+      }
+    } else {
       stopTimer();
-      session = null;
-      store.set('activeStudySession', null);
       left = 0;
       drawTimer();
       $('#timerLabel').textContent = 'TUR TAMAMLANDI';
       toast('Harika! Odaklanma turunu tamamladın.');
     }
-  }, 200);
-
+  }, 1000); // Net 1 saniyelik aralık
+  
   const startBtn = $('#startTimer');
   if(startBtn) startBtn.innerHTML = 'Duraklat <span>Ⅱ</span>';
 }
 
-function restoreTimer(){
-  if(session){
-    duration = Number(session.duration) || duration;
-    session.baseElapsed = Number(session.elapsed) || 0;
-    left = Math.max(0, duration - session.baseElapsed);
-    if(session.running){
-      session.running = false;
-      store.set('activeStudySession', session);
-    }
-    const startBtn = $('#startTimer');
-    if(startBtn) startBtn.innerHTML = 'Devam et <span>▶</span>';
+$('#startTimer')?.addEventListener('click', () => {
+  if(interval) {
+    stopTimer();
+  } else {
+    startTimer();
   }
+});
+
+$('#resetTimer')?.addEventListener('click', () => {
+  stopTimer();
+  left = duration;
+  $('#timerLabel').textContent = 'ODAKLANMA ZAMANI';
   drawTimer();
-}
+});
 
-$('#startTimer')?.addEventListener('click',()=>session?.running?stopTimer():startTimer());
-$('#resetTimer')?.addEventListener('click',()=>{stopTimer();session=null;store.set('activeStudySession',null);left=duration;$('#timerLabel').textContent='ODAKLANMA ZAMANI';drawTimer();});
-$$('.mode').forEach(button=>button.addEventListener('click',()=>{stopTimer();session=null;store.set('activeStudySession',null);$$('.mode').forEach(x=>x.classList.toggle('active',x===button));const mode=button.dataset.min;duration=(mode==='custom'?45:Number(mode))*60;left=duration;$('#timerLabel').textContent=mode==='custom'?'SERBEST ODAK':'ODAKLANMA ZAMANI';drawTimer();}));
-$('#applyCustomTime')?.addEventListener('click',()=>{const minutes=Math.max(1,Math.min(600,Number($('#customMinutes').value)||25));stopTimer();session=null;store.set('activeStudySession',null);duration=minutes*60;left=duration;$$('.mode').forEach(x=>x.classList.remove('active'));$('#timerLabel').textContent='ÖZEL ODAK SÜRESİ';drawTimer();});
+$$('.mode').forEach(button => button.addEventListener('click', () => {
+  stopTimer();
+  $$('.mode').forEach(x => x.classList.toggle('active', x === button));
+  const mode = button.dataset.min;
+  duration = (mode === 'custom' ? 45 : Number(mode)) * 60;
+  left = duration;
+  $('#timerLabel').textContent = mode === 'custom' ? 'SERBEST ODAK' : 'ODAKLANMA ZAMANI';
+  drawTimer();
+}));
 
-document.addEventListener('visibilitychange',()=>{if(session?.running)syncSession();});
-function pauseTimerOnExit(){if(session?.running){syncSession();session.running=false;store.set('activeStudySession',session);clearInterval(interval);interval=null;}}
-window.addEventListener('pagehide',pauseTimerOnExit);
-window.addEventListener('beforeunload',pauseTimerOnExit);
-restoreTimer();
+$('#applyCustomTime')?.addEventListener('click', () => {
+  const minutes = Math.max(1, Math.min(600, Number($('#customMinutes').value) || 25));
+  stopTimer();
+  duration = minutes * 60;
+  left = duration;
+  $$('.mode').forEach(x => x.classList.remove('active'));
+  $('#timerLabel').textContent = 'ÖZEL ODAK SÜRESİ';
+  drawTimer();
+});
+
+drawTimer();
 
 $('#themeToggle')?.addEventListener('click',()=>{document.body.classList.toggle('dark');store.set('darkMode',document.body.classList.contains('dark'));});
 if(store.get('darkMode',false))document.body.classList.add('dark');
