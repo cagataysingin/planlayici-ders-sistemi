@@ -32,12 +32,22 @@
       <div class="welcome panel"><div><div class="eyebrow light">ÜNİVERSİTE • ÇALIŞMA MODU</div><h2>Bugün kendin için<br>küçük bir adım at.</h2><p>Bir konuyu bitir, birkaç soru çöz ve bugün kendine verdiğin sözü tut.</p><button class="primary-btn" data-go="study">Çalışmaya başla <span>→</span></button></div><div class="welcome-art"><div class="orbit o1"></div><div class="orbit o2"></div><div class="book">✎</div><div class="spark s1">✦</div><div class="spark s2">✧</div></div></div>
       <div class="stats-grid">
         <div class="stat panel"><div class="stat-head"><span>Bugünkü çalışma</span><span class="stat-icon purple">◷</span></div><strong id="todayStudy">0 dk</strong><small>Bugün tamamladığın süre</small></div>
-        <div class="stat panel"><div class="stat-head"><span>Toplam çalışma</span><span class="stat-icon blue">▥</span></div><strong id="totalStudy">0 sa</strong><small>Bu cihazda kaydedilen süre</small></div>
-        <div class="stat panel"><div class="stat-head"><span>Not sayısı</span><span class="stat-icon lilac">▤</span></div><strong id="noteCount">0</strong><small>Yüklediğin çalışma dosyaları</small></div>
+        <div class="stat panel"><div class="stat-head"><span>Bu haftaki toplam</span><span class="stat-icon blue">▥</span></div><strong id="totalStudy">0 sa</strong><small>Bu haftaki toplam çalışma süren</small></div>
+        <div class="stat panel"><div class="stat-head"><span>Not sayısı</span><span class="stat-icon lilac">▤</span></div><strong id="noteCount">0</strong><small>Kaydettiğin ders notları</small></div>
         <div class="stat panel"><div class="stat-head"><span>Yaklaşan sınav</span><span class="stat-icon gray">▦</span></div><strong id="nextExam">—</strong><small>Eklediğin ilk sınav burada görünecek</small></div>
       </div>
-      <div class="dash-grid"><div class="panel section-card"><div class="section-head"><div><div class="eyebrow">PROGRAMIN</div><h3>Yaklaşan sınavlar</h3></div><button class="text-btn" data-go="calendar">Takvimi aç →</button></div><div id="dashboardExams" class="exam-list"></div></div>
-      <div class="panel section-card"><div class="section-head"><div><div class="eyebrow">HEDEFİN</div><h3>Bugün ne yapacaksın?</h3></div><span class="pill">Günlük plan</span></div><div class="goal-row"><div class="goal-ring" id="goalRing"><span id="goalPercent">0%</span></div><div><b>2 saat odaklanma</b><p>Çalışma sayacında geçirdiğin süre burada birikir.</p></div></div><button class="secondary-btn full" data-go="study">Odaklanma alanına git</button></div></div>
+      
+      <div class="dash-grid">
+        <div class="panel section-card"><div class="section-head"><div><div class="eyebrow">PROGRAMIN</div><h3>Yaklaşan sınavlar</h3></div><button class="text-btn" data-go="calendar">Takvimi aç →</button></div><div id="dashboardExams" class="exam-list"></div></div>
+        
+        <!-- Bugünkü Dersler Alanı Eklendi -->
+        <div class="panel section-card"><div class="section-head"><div><div class="eyebrow">BUGÜNKÜ PROGRAM</div><h3>Bugünkü derslerin</h3></div><span class="pill blue-pill">Ders programı</span></div><div id="dashboardSchedule" class="exam-list"></div></div>
+      </div>
+
+      <div class="dash-grid" style="margin-top:14px;">
+        <div class="panel section-card"><div class="section-head"><div><div class="eyebrow">HEDEFİN</div><h3>Bugün ne yapacaksın?</h3></div><span class="pill">Günlük plan</span></div><div class="goal-row"><div class="goal-ring" id="goalRing"><span id="goalPercent">0%</span></div><div><b>2 saat odaklanma</b><p>Çalışma sayacında geçirdiğin süre burada birikir.</p></div></div><button class="secondary-btn full" data-go="study">Odaklanma alanına git</button></div>
+      </div>
+
       <div class="panel section-card quote-card"><span class="quote-mark">“</span><div><b>Başlamak, işin yarısıdır.</b><p>Bugün mükemmel olmak zorunda değilsin. Sadece masaya otur ve ilk 25 dakikayı tamamla.</p></div><span class="quote-tag">KÜÇÜK ADIMLAR</span></div>
     </section>
 
@@ -81,7 +91,48 @@
 
     <section class="page" id="page-facts"><div class="panel section-card facts-panel"><div class="section-head"><div><div class="eyebrow">MERAK MOLASI</div><h3>Küçük Bilgiler</h3><p class="muted">Bilim, tarih ve günlük hayattan kısa kısa bilgiler. Hepsi bir arada.</p></div><span class="pill purple-pill">Bilim • Tarih • Eğlence</span></div><div id="factsGrid" class="facts-grid"></div></div></section>
 
-    <section class="page" id="page-notes"><div class="notes-layout"><div class="panel section-card upload-panel"><div class="eyebrow">DOSYA KÜTÜPHANEN</div><h3>Ders notlarını ekle</h3><p class="muted">PDF, görsel veya metin dosyalarını bu tarayıcıda sakla ve buradan aç.</p><label class="field-label" for="noteSubject">Notun dersi</label><select id="noteSubject" class="select"><option>Algoritma (3.5 Kredi)</option><option>Bilgisayar Bilimine Giriş (2 Kredi)</option><option>Genel Fizik (4 Kredi)</option><option>Genel Matematik (4 Kredi)</option><option>Temel Elektronik (2 Kredi)</option><option>Türk Dili (2 Kredi)</option></select><label class="dropzone" for="fileInput"><span class="upload-icon">＋</span><b>Dosya seç veya buraya tıkla</b><small>PDF, PNG, JPG, TXT • Dosya cihazında kalır</small></label><input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.txt" multiple hidden><div class="note-list" id="noteList"></div></div><div class="panel section-card note-reader"><div class="section-head"><div><div class="eyebrow">NOT GÖRÜNTÜLEYİCİ</div><h3 id="readerTitle">Bir not seç</h3></div><span class="pill">Önizleme</span></div><div id="reader" class="reader-empty"><div>▤</div><b>Notun burada açılacak</b><p>Soldan eklediğin bir dosyayı seç.</p></div></div></div></section>
+    <!-- Yenilenmiş Not Defteri Sayfası -->
+    <section class="page" id="page-notes">
+      <div class="notes-layout">
+        <div class="panel section-card upload-panel">
+          <div class="eyebrow">DERS NOTLARI DEFTERİ</div>
+          <h3>Not ekle ve düzenle</h3>
+          <p class="muted">Dosya yükleme sorununu aşmak için notlarını doğrudan buraya yazıp saklayabilirsin.</p>
+          
+          <label class="field-label" for="noteSubject">Notun dersi</label>
+          <select id="noteSubject" class="select">
+            <option>Algoritma (3.5 Kredi)</option>
+            <option>Bilgisayar Bilimine Giriş (2 Kredi)</option>
+            <option>Genel Fizik (4 Kredi)</option>
+            <option>Genel Matematik (4 Kredi)</option>
+            <option>Temel Elektronik (2 Kredi)</option>
+            <option>Türk Dili (2 Kredi)</option>
+          </select>
+
+          <label class="field-label" for="noteTitleInput">Not başlığı</label>
+          <input id="noteTitleInput" class="field" placeholder="Örn: 1. Ünite Özet Notları">
+
+          <label class="field-label" for="noteContentInput">Not içeriği</label>
+          <textarea id="noteContentInput" class="field" style="height:120px;resize:vertical;" placeholder="Buraya ders özetini veya önemli formülleri yazabilirsin..."></textarea>
+          
+          <button class="primary-btn full" id="saveNoteBtn" style="margin-top:12px;">Notu kaydet +</button>
+
+          <div class="note-list" id="noteList" style="margin-top:20px;"></div>
+        </div>
+
+        <div class="panel section-card note-reader">
+          <div class="section-head">
+            <div><div class="eyebrow">NOT GÖRÜNTÜLEYİCİ</div><h3 id="readerTitle">Bir not seç</h3></div>
+            <span class="pill">Önizleme</span>
+          </div>
+          <div id="reader" class="reader-empty">
+            <div>▤</div>
+            <b>Notun burada açılacak</b>
+            <p>Soldan kaydettiğin bir nota tıkla.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="page" id="page-assistant"><div class="assistant-layout"><div class="panel chat-panel"><div class="section-head"><div><div class="eyebrow">YANINDAKİ ÇALIŞMA ARKADAŞIN</div><h3>Mini çalışma asistanı</h3></div><span class="pill green-pill">● Hazır</span></div><div class="chat-messages" id="chatMessages"><div class="chat-bubble bot">Selam! Ben çalışma arkadaşınım. Bugün hangi derse çalışıyorsun? Konuyu parçalara ayırmana, tekrar planı yapmana veya kısa bir motivasyon molasına yardımcı olabilirim. <small>Yerel demo asistanı</small></div></div><div class="quick-prompts"><button data-prompt="Bana 2 saatlik matematik çalışma planı yap.">2 saatlik plan</button><button data-prompt="Pomodoro tekniğini nasıl uygulayayım?">Pomodoro öner</button><button data-prompt="Ders çalışmaya motive olamıyorum.">Motivasyon</button></div><form id="chatForm" class="chat-input"><input id="chatInput" placeholder="Bir şey sor…"><button class="primary-btn">Gönder ↑</button></form></div><div class="panel section-card assistant-info"><div class="assistant-avatar">✧</div><h3>Nasıl yardımcı olur?</h3><ul><li>Konuyu küçük çalışma bloklarına böler.</li><li>Tekrar ve mola düzeni önerir.</li><li>Görevlerini netleştirmene yardım eder.</li></ul><p class="muted">Bu sürüm internet üzerinden yapay zekâ servisine bağlanmaz; tarayıcı içinde hazır yanıtlarla çalışan bir demo içerir. Gerçek AI için güvenli bir sunucu/API bağlantısı eklenmelidir.</p></div></div></section>
 
