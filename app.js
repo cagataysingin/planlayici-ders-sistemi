@@ -16,18 +16,28 @@ function showPage(page) {
 }
 $('#nav')?.addEventListener('click',e=>{const b=e.target.closest('[data-page]');if(b)showPage(b.dataset.page);});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)showPage(b.dataset.go);});
-function totalMinutes(){return Object.values(study).reduce((sum,value)=>sum+(Number(value)||0),0);}
+
+// Toplam çalışma yerine son 7 günün haftalık toplamını hesaplar
+function weekMinutes(){const week=lastSeven();return week.reduce((a,b)=>a+b,0);}
 function lastSeven(){const result=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;result.push(study[key]||0);}return result;}
+
 function renderStats(){
   const today=study[todayKey()]||0, week=lastSeven();
-  $('#todayStudy').textContent=today+' dk'; $('#totalStudy').textContent=(totalMinutes()/60).toFixed(1)+' sa';
+  const totalWeeklyMins = week.reduce((a,b)=>a+b,0);
+  
+  $('#todayStudy').textContent=today+' dk'; 
+  // Toplam çalışma alanı artık haftalık saate dönüştürüldü
+  $('#totalStudy').textContent=(totalWeeklyMins/60).toFixed(1)+' sa';
+  $('#totalStudy').closest('.stat').querySelector('small').textContent='Bu haftaki toplam çalışma süren';
+
   $('#goalBar').style.width=Math.min(100,today/120*100)+'%'; $('#goalText').textContent=Math.min(today,120)+' / 120 dk';
   $('#goalPercent').textContent=Math.min(100,Math.round(today/120*100))+'%';
   $('#goalRing').style.background=`conic-gradient(#8676b6 ${Math.min(100,today/120*100)*3.6}deg,#ebe8f2 0deg)`;
-  $('#weekHours').textContent=week.reduce((a,b)=>a+b,0)+' dk';
+  $('#weekHours').textContent=totalWeeklyMins+' dk';
   const max=Math.max(30,...week);$('#weekBars').innerHTML=week.map((v,i)=>`<span style="height:${Math.max(5,v/max*55)}px"><small>${['P','S','Ç','P','C','C','P'][i]}</small></span>`).join('');
   $('#noteCount').textContent=notes.length;
 }
+
 function renderTasks(){
   const done=tasks.filter(t=>t.done).length;$('#taskProgress').textContent=`${done} / ${tasks.length} tamamlandı`;
   $('#taskList').innerHTML=tasks.map((task,i)=>`<div class="task-item ${task.done?'done':''}"><input type="checkbox" data-task="${i}" ${task.done?'checked':''}><span>${esc(task.text)}</span><button data-del="${i}" aria-label="Görevi sil">✕</button></div>`).join('')||'<p class="muted">Henüz görev eklemedin. İlk küçük hedefini yaz.</p>';
@@ -42,45 +52,100 @@ $('#studyTarget').value=target;
 function updateClock(){const now=new Date();$('#liveClock').textContent=now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});$('#todayLabel').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');}
 updateClock();setInterval(updateClock,1000);
 
-// Odak sayacı: süre, sekme değişiminde ve sayfa yenilemede zaman damgasıyla hesaplanır.
 let duration=25*60,left=duration,interval=null,elapsed=0;
 const circumference=2*Math.PI*104;
 let session=store.get('activeStudySession',null);
 function drawTimer(){const mm=Math.floor(left/60),ss=left%60;$('#timerDisplay').textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;$('#timerProgress').style.strokeDashoffset=circumference*(1-left/duration);}
 function addStudy(minutes){if(!minutes)return;const key=todayKey();study[key]=(study[key]||0)+minutes;store.set('study',study);renderStats();}
-function syncSession(){if(!session||!session.running)return;const now=Date.now();const delta=Math.max(0,Math.floor((now-session.lastTick)/1000));if(delta){session.elapsed=(session.elapsed||0)+delta;session.pendingSeconds=(session.pendingSeconds||0)+delta;session.lastTick+=delta;while(session.pendingSeconds>=60){addStudy(1);session.pendingSeconds-=60;}left=Math.max(0,(session.duration||duration)-(session.elapsed||0));elapsed=session.elapsed;store.set('activeStudySession',session);drawTimer();}}
-function stopTimer(){syncSession();if(session){session.running=false;store.set('activeStudySession',session);}clearInterval(interval);interval=null;$('#startTimer').innerHTML='Devam et <span>▶</span>';}
-function startTimer(){if(interval)return;if(!session||session.duration!==duration||session.elapsed>=duration){session={duration,elapsed:0,lastTick:Date.now(),running:true};}else{session.lastTick=Date.now();session.running=true;}store.set('activeStudySession',session);interval=setInterval(()=>{syncSession();if(left<=0){stopTimer();session=null;store.set('activeStudySession',null);left=0;drawTimer();$('#timerLabel').textContent='TUR TAMAMLANDI';toast('Harika! Odaklanma turunu tamamladın.');}},500);$('#startTimer').innerHTML='Duraklat <span>Ⅱ</span>';}
+
+function syncSession(){
+  if(!session || !session.running) return;
+  const now = Date.now();
+  const delta = Math.max(0, Math.floor((now - session.lastTick) / 1000));
+  if(delta > 0) {
+    session.elapsed = (session.elapsed || 0) + delta;
+    session.pendingSeconds = (session.pendingSeconds || 0) + delta;
+    session.lastTick = now; // lastTick güncellenerek döngüsel atlama engellendi
+    while(session.pendingSeconds >= 60){
+      addStudy(1);
+      session.pendingSeconds -= 60;
+    }
+    left = Math.max(0, (session.duration || duration) - session.elapsed);
+    elapsed = session.elapsed;
+    store.set('activeStudySession', session);
+    drawTimer();
+  }
+}
+
+function stopTimer(){
+  syncSession();
+  if(session){
+    session.running = false;
+    store.set('activeStudySession', session);
+  }
+  clearInterval(interval);
+  interval = null;
+  const startBtn = $('#startTimer');
+  if(startBtn) startBtn.innerHTML = 'Devam et <span>▶</span>';
+}
+
+function startTimer(){
+  if(interval) return;
+  if(!session || session.duration !== duration || session.elapsed >= duration){
+    session = { duration, elapsed: 0, lastTick: Date.now(), running: true, pendingSeconds: 0 };
+  } else {
+    session.lastTick = Date.now();
+    session.running = true;
+  }
+  store.set('activeStudySession', session);
+  
+  interval = setInterval(()=>{
+    syncSession();
+    if(left <= 0){
+      stopTimer();
+      session = null;
+      store.set('activeStudySession', null);
+      left = 0;
+      drawTimer();
+      $('#timerLabel').textContent = 'TUR TAMAMLANDI';
+      toast('Harika! Odaklanma turunu tamamladın.');
+    }
+  }, 500);
+  
+  const startBtn = $('#startTimer');
+  if(startBtn) startBtn.innerHTML = 'Duraklat <span>Ⅱ</span>';
+}
+
 function restoreTimer(){
   if(session){
-    duration=Number(session.duration)||duration;
-    elapsed=Number(session.elapsed)||0;
-    left=Math.max(0,duration-elapsed);
-    // Sayfa yeniden açıldığında eski oturumu otomatik sürdürme.
-    // Site kapalıyken geçen süre çalışma süresine eklenmez.
+    duration = Number(session.duration) || duration;
+    elapsed = Number(session.elapsed) || 0;
+    left = Math.max(0, duration - elapsed);
     if(session.running){
-      session.running=false;
-      session.lastTick=Date.now();
-      store.set('activeStudySession',session);
+      // Sayfa yenilendiğinde sayaç askıda kalmasın diye duraklatılıyor
+      session.running = false;
+      session.lastTick = Date.now();
+      store.set('activeStudySession', session);
     }
-    $('#startTimer').innerHTML='Devam et <span>▶</span>';
+    const startBtn = $('#startTimer');
+    if(startBtn) startBtn.innerHTML = 'Devam et <span>▶</span>';
   }
   drawTimer();
 }
+
 $('#startTimer')?.addEventListener('click',()=>session?.running?stopTimer():startTimer());
 $('#resetTimer')?.addEventListener('click',()=>{stopTimer();session=null;store.set('activeStudySession',null);left=duration;elapsed=0;$('#timerLabel').textContent='ODAKLANMA ZAMANI';drawTimer();});
 $$('.mode').forEach(button=>button.addEventListener('click',()=>{stopTimer();session=null;store.set('activeStudySession',null);$$('.mode').forEach(x=>x.classList.toggle('active',x===button));const mode=button.dataset.min;duration=(mode==='custom'?45:Number(mode))*60;left=duration;elapsed=0;$('#timerLabel').textContent=mode==='custom'?'SERBEST ODAK':'ODAKLANMA ZAMANI';drawTimer();}));
 $('#applyCustomTime')?.addEventListener('click',()=>{const minutes=Math.max(1,Math.min(600,Number($('#customMinutes').value)||25));stopTimer();session=null;store.set('activeStudySession',null);duration=minutes*60;left=duration;elapsed=0;$$('.mode').forEach(x=>x.classList.remove('active'));$('#timerLabel').textContent='ÖZEL ODAK SÜRESİ';drawTimer();});
+
 document.addEventListener('visibilitychange',()=>{if(session?.running)syncSession();});
 function pauseTimerOnExit(){if(session?.running){syncSession();session.running=false;store.set('activeStudySession',session);clearInterval(interval);interval=null;}}
-// Sekme arka planda kalırsa sayaç sürer; sayfadan çıkışta oturum duraklatılır.
 window.addEventListener('pagehide',pauseTimerOnExit);
 window.addEventListener('beforeunload',pauseTimerOnExit);
 restoreTimer();
 $('#themeToggle')?.addEventListener('click',()=>{document.body.classList.toggle('dark');store.set('darkMode',document.body.classList.contains('dark'));});
 if(store.get('darkMode',false))document.body.classList.add('dark');
 
-// Ders notları
 function renderNotes(){
   $('#noteList').innerHTML=notes.map((n,i)=>`<div class="note-file"><div class="file-ico">${n.type==='application/pdf'?'PDF':n.type.startsWith('image/')?'IMG':'TXT'}</div><div><b>${esc(n.name)}</b><small>${(n.size/1024).toFixed(0)} KB</small></div><button data-open="${i}">Aç</button><button data-remove="${i}">Sil</button></div>`).join('')||'<p class="muted">Henüz dosya eklemedin.</p>';
   $('#noteCount').textContent=notes.length;
