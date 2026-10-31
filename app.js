@@ -119,7 +119,7 @@ $('#applyCustomTime')?.addEventListener('click', () => {
 });
 drawTimer();
 
-// Metin Tabanlı Not Sistemi (Çalışmayan dosya sistemi yerine)
+// Notlar ve PDF Link Sistemi
 function renderNotes(){
   const list = $('#noteList');
   if(!list) return;
@@ -153,14 +153,22 @@ $('#noteList')?.addEventListener('click', e => {
     store.set('notes', notes);
     renderNotes();
     $('#readerTitle').textContent = 'Bir not seç';
-    $('#reader').innerHTML = '<div class="reader-empty"><div>▤</div><b>Notun burada açılacak</b><p>Soldan eklediğin bir notu seç.</p></div>';
+    $('#reader').innerHTML = '<div class="reader-empty"><div>▤</div><b>Notun burada açılacak</b><p>Soldan kaydettiğin bir notu seç.</p></div>';
     return;
   }
   const item = e.target.closest('[data-open-note]');
   if(item){
     const note = notes[Number(item.dataset.openNote)];
     $('#readerTitle').textContent = note.title;
-    $('#reader').innerHTML = `<div style="padding:10px;"><small style="color:var(--muted);display:block;margin-bottom:8px;">Ders: ${note.subject} | Tarih: ${note.date}</small><pre class="reader-text">${esc(note.content)}</pre></div>`;
+    
+    let contentHtml = '';
+    if(note.content.startsWith('http://') || note.content.startsWith('https://')){
+      contentHtml = `<p style="margin-bottom:15px;color:var(--muted);">Bu nota bir PDF veya internet bağlantısı eklenmiş:</p><a href="${esc(note.content)}" target="_blank" class="primary-btn" style="display:inline-block;text-decoration:none;margin-bottom:15px;">PDF / Bağlantıyı Yeni Sekmede Aç ↗</a><pre class="reader-text">${esc(note.content)}</pre>`;
+    } else {
+      contentHtml = `<pre class="reader-text">${esc(note.content)}</pre>`;
+    }
+
+    $('#reader').innerHTML = `<div style="padding:10px;"><small style="color:var(--muted);display:block;margin-bottom:8px;">Ders: ${note.subject} | Tarih: ${note.date}</small>${contentHtml}</div>`;
   }
 });
 
@@ -169,7 +177,7 @@ function renderDashboardSchedule(){
   const box = $('#dashboardSchedule');
   if(!box) return;
   const schedule = store.get('weekly_schedule', []);
-  const currentDayIndex = new Date().getDay(); // 0: Pazar, 1: Pazartesi...
+  const currentDayIndex = new Date().getDay();
   const todayEntries = schedule.filter(x => Number(x.day) === currentDayIndex).sort((a,b)=>a.start.localeCompare(b.start));
   
   if(!todayEntries.length){
