@@ -34,6 +34,7 @@ function renderStats(){
   $('#weekHours').textContent=totalWeeklyMins+' dk';
   const max=Math.max(30,...week);$('#weekBars').innerHTML=week.map((v,i)=>`<span style="height:${Math.max(5,v/max*55)}px"><small>${['P','S','Ç','P','C','C','P'][i]}</small></span>`).join('');
   $('#noteCount').textContent=notes.length;
+  renderDashboardSchedule();
 }
 
 function renderTasks(){
@@ -50,7 +51,7 @@ $('#studyTarget').value=target;
 function updateClock(){const now=new Date();$('#liveClock').textContent=now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});$('#todayLabel').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');}
 updateClock();setInterval(updateClock,1000);
 
-// Kesin çözüm: Saniyede 1 kez azalan, stabil sayaç mantığı
+// Sayaç mantığı
 let duration = 25 * 60, left = duration, interval = null;
 const circumference = 2 * Math.PI * 104;
 
@@ -77,12 +78,10 @@ function stopTimer(){
 
 function startTimer(){
   if(interval) return;
-  
   interval = setInterval(() => {
     if(left > 0){
       left--;
       drawTimer();
-      // Her geçen 60 saniyede bir istatistiğe 1 dakika ekle
       if((duration - left) % 60 === 0){
         addStudy(1);
       }
@@ -93,27 +92,13 @@ function startTimer(){
       $('#timerLabel').textContent = 'TUR TAMAMLANDI';
       toast('Harika! Odaklanma turunu tamamladın.');
     }
-  }, 1000); // Net 1 saniyelik aralık
-  
+  }, 1000);
   const startBtn = $('#startTimer');
   if(startBtn) startBtn.innerHTML = 'Duraklat <span>Ⅱ</span>';
 }
 
-$('#startTimer')?.addEventListener('click', () => {
-  if(interval) {
-    stopTimer();
-  } else {
-    startTimer();
-  }
-});
-
-$('#resetTimer')?.addEventListener('click', () => {
-  stopTimer();
-  left = duration;
-  $('#timerLabel').textContent = 'ODAKLANMA ZAMANI';
-  drawTimer();
-});
-
+$('#startTimer')?.addEventListener('click', () => { if(interval) stopTimer(); else startTimer(); });
+$('#resetTimer')?.addEventListener('click', () => { stopTimer(); left = duration; $('#timerLabel').textContent = 'ODAKLANMA ZAMANI'; drawTimer(); });
 $$('.mode').forEach(button => button.addEventListener('click', () => {
   stopTimer();
   $$('.mode').forEach(x => x.classList.toggle('active', x === button));
@@ -123,7 +108,6 @@ $$('.mode').forEach(button => button.addEventListener('click', () => {
   $('#timerLabel').textContent = mode === 'custom' ? 'SERBEST ODAK' : 'ODAKLANMA ZAMANI';
   drawTimer();
 }));
-
 $('#applyCustomTime')?.addEventListener('click', () => {
   const minutes = Math.max(1, Math.min(600, Number($('#customMinutes').value) || 25));
   stopTimer();
@@ -133,22 +117,78 @@ $('#applyCustomTime')?.addEventListener('click', () => {
   $('#timerLabel').textContent = 'ÖZEL ODAK SÜRESİ';
   drawTimer();
 });
-
 drawTimer();
+
+// Metin Tabanlı Not Sistemi (Çalışmayan dosya sistemi yerine)
+function renderNotes(){
+  const list = $('#noteList');
+  if(!list) return;
+  list.innerHTML = notes.map((n,i)=>`
+    <div class="note-file" style="cursor:pointer;" data-open-note="${i}">
+      <div class="file-ico">NOT</div>
+      <div style="min-width:0;flex:1;"><b>${esc(n.title)}</b><small>${n.subject} • ${n.date}</small></div>
+      <button data-remove-note="${i}" class="delete-entry">×</button>
+    </div>
+  `).join('') || '<p class="muted">Henüz not eklemedin.</p>';
+  $('#noteCount').textContent = notes.length;
+}
+
+$('#saveNoteBtn')?.addEventListener('click', () => {
+  const title = $('#noteTitleInput').value.trim();
+  const subject = $('#noteSubject').value;
+  const content = $('#noteContentInput').value.trim();
+  if(!title || !content){ toast('Başlık ve içerik boş olamaz.'); return; }
+  notes.push({title, subject, content, date: new Date().toLocaleDateString('tr-TR')});
+  store.set('notes', notes);
+  $('#noteTitleInput').value = '';
+  $('#noteContentInput').value = '';
+  renderNotes();
+  toast('Notun başarıyla kaydedildi.');
+});
+
+$('#noteList')?.addEventListener('click', e => {
+  const removeBtn = e.target.closest('[data-remove-note]');
+  if(removeBtn){
+    notes.splice(Number(removeBtn.dataset.removeNote), 1);
+    store.set('notes', notes);
+    renderNotes();
+    $('#readerTitle').textContent = 'Bir not seç';
+    $('#reader').innerHTML = '<div class="reader-empty"><div>▤</div><b>Notun burada açılacak</b><p>Soldan eklediğin bir notu seç.</p></div>';
+    return;
+  }
+  const item = e.target.closest('[data-open-note]');
+  if(item){
+    const note = notes[Number(item.dataset.openNote)];
+    $('#readerTitle').textContent = note.title;
+    $('#reader').innerHTML = `<div style="padding:10px;"><small style="color:var(--muted);display:block;margin-bottom:8px;">Ders: ${note.subject} | Tarih: ${note.date}</small><pre class="reader-text">${esc(note.content)}</pre></div>`;
+  }
+});
+
+// Ana sayfada günlük ders programını gösterme
+function renderDashboardSchedule(){
+  const box = $('#dashboardSchedule');
+  if(!box) return;
+  const schedule = store.get('weekly_schedule', []);
+  const currentDayIndex = new Date().getDay(); // 0: Pazar, 1: Pazartesi...
+  const todayEntries = schedule.filter(x => Number(x.day) === currentDayIndex).sort((a,b)=>a.start.localeCompare(b.start));
+  
+  if(!todayEntries.length){
+    box.innerHTML = '<p class="muted">Bugün için planlanmış dersin bulunmuyor.</p>';
+    return;
+  }
+  box.innerHTML = todayEntries.map(x=>`
+    <div class="exam-row">
+      <div class="exam-date" style="background:#f0edf8;color:#7767a8;"><b>${x.start}</b><small>DERS</small></div>
+      <div class="exam-details"><b>${esc(x.subject)}</b><p>${x.room ? esc(x.room) : 'Derslik belirtilmedi'} • Bitiş: ${x.end}</p></div>
+      <span class="pill purple-pill">Bugün</span>
+    </div>
+  `).join('');
+}
 
 $('#themeToggle')?.addEventListener('click',()=>{document.body.classList.toggle('dark');store.set('darkMode',document.body.classList.contains('dark'));});
 if(store.get('darkMode',false))document.body.classList.add('dark');
 
-function renderNotes(){
-  $('#noteList').innerHTML=notes.map((n,i)=>`<div class="note-file"><div class="file-ico">${n.type==='application/pdf'?'PDF':n.type.startsWith('image/')?'IMG':'TXT'}</div><div><b>${esc(n.name)}</b><small>${(n.size/1024).toFixed(0)} KB</small></div><button data-open="${i}">Aç</button><button data-remove="${i}">Sil</button></div>`).join('')||'<p class="muted">Henüz dosya eklemedin.</p>';
-  $('#noteCount').textContent=notes.length;
-}
-$('#fileInput')?.addEventListener('change',async e=>{
-  for(const file of e.target.files){if(file.size>8*1024*1024){toast(file.name+' çok büyük (8 MB sınırı).');continue;}const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});notes.push({name:file.name,type:file.type,size:file.size,data});}
-  store.set('notes',notes);renderNotes();e.target.value='';toast('Notların eklendi.');
-});
-$('#noteList')?.addEventListener('click',e=>{
-  if(e.target.dataset.open!==undefined){const note=notes[Number(e.target.dataset.open)];$('#readerTitle').textContent=note.name;const reader=$('#reader');if(note.type==='application/pdf')reader.innerHTML=`<iframe class="reader-frame" src="${note.data}"></iframe>`;else if(note.type.startsWith('image/'))reader.innerHTML=`<img class="reader-image" src="${note.data}" alt="${esc(note.name)}">`;else{const text=atob(note.data.split(',')[1]);reader.innerHTML=`<pre class="reader-text">${esc(decodeURIComponent(escape(text)))}</pre>`;}}
-  if(e.target.dataset.remove!==undefined){notes.splice(Number(e.target.dataset.remove),1);store.set('notes',notes);renderNotes();$('#readerTitle').textContent='Bir not seç';$('#reader').innerHTML='<div class="reader-empty"><div>▤</div><b>Notun burada açılacak</b><p>Soldan eklediğin bir dosyayı seç.</p></div>';}
-});
-renderNotes();renderStats();renderTasks();
+renderNotes();
+renderStats();
+renderTasks();
+renderDashboardSchedule();
